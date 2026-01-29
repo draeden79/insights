@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const db = require('./db/connection');
+const { runFullSetup } = require('./db/setup');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -77,6 +78,9 @@ async function start() {
         }
         
         console.log('Database connected successfully');
+        
+        // Run auto-setup: migrations, seed, initial snapshot
+        await runFullSetup();
         
         app.listen(PORT, () => {
             console.log(`Server running on http://localhost:${PORT}`);

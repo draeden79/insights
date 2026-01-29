@@ -1,0 +1,135 @@
+/**
+ * Auto-setup module for production deployment
+ * Runs migrations, seed, and initial snapshot automatically on startup
+ */
+
+const fs = require('fs');
+const path = require('path');
+const db = require('./connection');
+
+/**
+ * Run database migrations if tables don't exist
+ */
+async function runMigrations() {
+    console.log('[Setup] Checking database migrations...');
+    
+    const pool = db.getPool();
+    
+    // Check if tables already exist
+    const [tables] = await pool.query("SHOW TABLES LIKE 'series'");
+    
+    if (tables.length > 0) {
+        console.log('[Setup] Database tables already exist.');
+        return false;
+    }
+    
+    console.log('[Setup] Running migrations...');
+    
+    // Read migration file
+    const migrationPath = path.join(__dirname, '../../../database/migrations/001_initial_schema.sql');
+    
+    if (!fs.existsSync(migrationPath)) {
+        throw new Error(`Migration file not found: ${migrationPath}`);
+    }
+    
+    const sql = fs.readFileSync(migrationPath, 'utf8');
+    
+    // Split into individual statements and execute
+    const statements = sql
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0 && !s.startsWith('--'));
+    
+    for (const statement of statements) {
+        await pool.query(statement);
+    }
+    
+    console.log('[Setup] Migrations completed successfully!');
+    return true;
+}
+
+/**
+ * Run seed if series don't exist
+ */
+async function runSeedIfNeeded() {
+    console.log('[Setup] Checking if seed is needed...');
+    
+    const series = await db.query('SELECT COUNT(*) as count FROM series');
+    
+    if (series[0].count > 0) {
+        console.log('[Setup] Series already exist, skipping seed.');
+        return false;
+    }
+    
+    console.log('[Setup] Running seed...');
+    
+    const seedSeries = require('./seeds/seed-series');
+    await seedSeries();
+    
+    console.log('[Setup] Seed completed successfully!');
+    return true;
+}
+
+/**
+ * Run initial snapshot if no data points exist
+ */
+async function runSnapshotIfNeeded() {
+    console.log('[Setup] Checking if initial snapshot is needed...');
+    
+    const points = await db.query('SELECT COUNT(*) as count FROM series_points');
+    
+    if (points[0].count > 0) {
+        console.log('[Setup] Data points already exist, skipping snapshot.');
+        return false;
+    }
+    
+    console.log('[Setup] Running initial snapshot (this may take a few minutes)...');
+    
+    // Import snapshot runner
+    const { runSnapshot } = require('../../scripts/snapshot-series');
+    
+    // Get all active series
+    const series = await db.query("SELECT slug FROM series WHERE status = 'active'");
+    
+    for (const s of series) {
+        console.log(`[Setup] Running snapshot for ${s.slug}...`);
+        try {
+            await runSnapshot(s.slug);
+        } catch (error) {
+            console.error(`[Setup] Warning: Snapshot failed for ${s.slug}:`, error.message);
+            // Continue with other series, don't fail completely
+        }
+    }
+    
+    console.log('[Setup] Initial snapshot completed!');
+    return true;
+}
+
+/**
+ * Run full setup: migrations + seed + snapshot
+ */
+async function runFullSetup() {
+    console.log('[Setup] Starting auto-setup...');
+    
+    try {
+        const migrationsRan = await runMigrations();
+        const seedRan = await runSeedIfNeeded();
+        const snapshotRan = await runSnapshotIfNeeded();
+        
+        if (migrationsRan || seedRan || snapshotRan) {
+            console.log('[Setup] Auto-setup completed successfully!');
+        } else {
+            console.log('[Setup] Database already configured, no setup needed.');
+        }
+    } catch (error) {
+        console.error('[Setup] Auto-setup failed:', error.message);
+        throw error;
+    }
+}
+
+module.exports = {
+    runMigrations,
+    runSeedIfNeeded,
+    runSnapshotIfNeeded,
+    runFullSetup
+};

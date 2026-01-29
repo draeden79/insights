@@ -1,15 +1,22 @@
 #!/usr/bin/env node
 
-require('dotenv').config();
+/**
+ * Snapshot (full backfill) for a series
+ * 
+ * Usage (CLI): node backend/scripts/snapshot-series.js --slug spx_price_monthly
+ * Usage (programmatic): const { runSnapshot } = require('./snapshot-series'); await runSnapshot('spx_price_monthly');
+ */
+
+// Only load dotenv if running as main script
+if (require.main === module) {
+    require('dotenv').config();
+}
+
 const db = require('../src/db/connection');
 const ShillerIngestionService = require('../src/services/ingestion/shiller');
 const BaseIngestionService = require('../src/services/ingestion/base');
 const ingestionFactory = require('../src/services/ingestion/factory');
 
-/**
- * Snapshot (full backfill) for a series
- * Usage: node backend/scripts/snapshot-series.js --slug spx_price_monthly
- */
 class SnapshotRunner extends BaseIngestionService {
     constructor(slug) {
         super(slug);
@@ -172,27 +179,44 @@ class SnapshotRunner extends BaseIngestionService {
     }
 }
 
-// Parse command line arguments
-const args = process.argv.slice(2);
-const slugIndex = args.indexOf('--slug');
-const slug = slugIndex >= 0 && args[slugIndex + 1] ? args[slugIndex + 1] : null;
-
-if (!slug) {
-    console.error('Usage: node snapshot-series.js --slug <series-slug>');
-    process.exit(1);
+/**
+ * Run snapshot for a series (programmatic interface)
+ * @param {string} slug - Series slug to snapshot
+ * @returns {Promise<void>}
+ */
+async function runSnapshot(slug) {
+    if (!slug) {
+        throw new Error('Series slug is required');
+    }
+    
+    const runner = new SnapshotRunner(slug);
+    await runner.run();
 }
 
-// Run snapshot
-const runner = new SnapshotRunner(slug);
-runner.run()
-    .then(() => {
-        console.log('Done');
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('Snapshot failed:', error);
+// Export for programmatic use
+module.exports = { runSnapshot, SnapshotRunner };
+
+// CLI execution
+if (require.main === module) {
+    const args = process.argv.slice(2);
+    const slugIndex = args.indexOf('--slug');
+    const slug = slugIndex >= 0 && args[slugIndex + 1] ? args[slugIndex + 1] : null;
+
+    if (!slug) {
+        console.error('Usage: node snapshot-series.js --slug <series-slug>');
         process.exit(1);
-    })
-    .finally(() => {
-        db.close();
-    });
+    }
+
+    runSnapshot(slug)
+        .then(() => {
+            console.log('Done');
+            process.exit(0);
+        })
+        .catch((error) => {
+            console.error('Snapshot failed:', error);
+            process.exit(1);
+        })
+        .finally(() => {
+            db.close();
+        });
+}

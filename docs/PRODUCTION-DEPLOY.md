@@ -1,173 +1,172 @@
 # Alitar Insights - Production Deployment Guide
 
-## Pre-requisites
+## Overview
 
-### Namecheap Configuration
+This application uses **automated deployment** via GitHub Actions. When you push to `main`, the app is automatically deployed to Namecheap via FTP. On first startup, the app automatically:
 
-1. **Node.js Version**: Must be 14+ (current: 10.24.1 is too old)
-   - Go to cPanel → Software → Setup Node.js App
-   - Change Node.js version to 18.x or 20.x LTS
-
-2. **MySQL Database**
-   - Create database in cPanel → MySQL Databases
-   - Database name: `alitbedb_insights` (or your preferred name)
-   - Create user with full privileges
+1. Creates database tables (migrations)
+2. Seeds initial series definitions
+3. Downloads historical data (snapshot)
 
 ---
 
-## Step 1: Database Setup
+## Namecheap Configuration
 
-### 1.1 Create Database (cPanel)
-
-1. Go to cPanel → MySQL Databases
-2. Create new database: `alitbedb_insights`
-3. Create new user: `alitbedb_insights_user`
-4. Add user to database with ALL PRIVILEGES
-
-### 1.2 Run Migration
-
-Via cPanel Terminal or SSH:
-
-```bash
-cd /home/alitbedb/apps/insights
-source /home/alitbedb/nodevenv/apps/insights/18/bin/activate
-mysql -u alitbedb_insights_user -p alitbedb_insights < database/migrations/001_initial_schema.sql
-```
-
-### 1.3 Configure .env
-
-Create `.env` file in `/home/alitbedb/apps/insights/`:
-
-```env
-# Database Configuration
-DB_HOST=localhost
-DB_USER=alitbedb_insights_user
-DB_PASSWORD=YOUR_SECURE_PASSWORD
-DB_NAME=alitbedb_insights
-DB_PORT=3306
-
-# Server Configuration
-PORT=3000
-NODE_ENV=production
-
-# Shiller Data Source
-SHILLER_DATA_URL=http://www.econ.yale.edu/~shiller/data/ie_data.xls
-```
-
-### 1.4 Seed and Snapshot
-
-```bash
-cd /home/alitbedb/apps/insights
-source /home/alitbedb/nodevenv/apps/insights/18/bin/activate
-npm run seed
-npm run snapshot -- --slug spx_price_monthly
-npm run snapshot -- --slug spx_pe_monthly
-```
+| Setting | Value |
+|---------|-------|
+| Node.js version | 22.x (or 18.x+) |
+| Application root | `apps/insights` |
+| Application URL | `alitar.one/insights` |
+| Startup file | `backend/src/app.js` |
 
 ---
 
-## Step 2: GitHub Actions for Auto-Deploy
+## Setup Steps
 
-### 2.1 Create FTP Credentials (Namecheap)
+### 1. Create MySQL Database (cPanel)
 
-1. Go to cPanel → FTP Accounts
-2. Create new FTP account:
-   - Username: `deploy@alitar.one` (or similar)
-   - Directory: `/home/alitbedb/apps/insights`
-   - Quota: Unlimited
-3. Note the FTP server: usually `ftp.alitar.one` or IP address
+1. Go to cPanel > MySQL Databases
+2. Create new database (e.g., `alitbedb_insights`)
+3. Create new user (e.g., `alitbedb_user`)
+4. Add user to database with **ALL PRIVILEGES**
 
-### 2.2 Add GitHub Secrets
+### 2. Configure GitHub Secrets
 
-Go to GitHub repo → Settings → Secrets and variables → Actions
+Go to: **https://github.com/draeden79/insights/settings/secrets/actions**
 
-Add these secrets:
-- `FTP_SERVER`: Your FTP server (e.g., `ftp.alitar.one`)
-- `FTP_USERNAME`: FTP username (e.g., `deploy@alitar.one`)
-- `FTP_PASSWORD`: FTP password
+Add these repository secrets:
 
-### 2.3 GitHub Actions Workflow
+| Secret | Description | Example |
+|--------|-------------|---------|
+| `FTP_SERVER` | Namecheap FTP server | `ftp.alitar.one` |
+| `FTP_USERNAME` | FTP username | `deploy@alitar.one` |
+| `FTP_PASSWORD` | FTP password | `***` |
+| `DB_HOST` | Database host | `localhost` |
+| `DB_USER` | Database user | `alitbedb_user` |
+| `DB_PASSWORD` | Database password | `***` |
+| `DB_NAME` | Database name | `alitbedb_insights` |
 
-Create `.github/workflows/deploy.yml` (already included in this repo)
+### 3. Create FTP Account (cPanel)
 
----
+1. Go to cPanel > FTP Accounts
+2. Create new FTP account
+3. Set directory to: `/home/alitbedb/apps/insights`
+4. Use these credentials for `FTP_USERNAME` and `FTP_PASSWORD`
 
-## Step 3: Cron Job for Data Updates
+### 4. First Deploy
 
-### 3.1 Configure Cron (cPanel)
+1. Push any change to `main` branch
+2. GitHub Actions will deploy automatically
+3. In cPanel terminal, run once:
+   ```bash
+   source /home/alitbedb/nodevenv/apps/insights/22/bin/activate
+   cd /home/alitbedb/apps/insights
+   npm install
+   ```
+4. Restart the app in cPanel > Setup Node.js App
 
-1. Go to cPanel → Cron Jobs
-2. Add new cron job:
+The app will automatically create tables, seed data, and download historical prices on first startup.
 
-**Daily update at 3:00 AM (server time):**
+### 5. Configure Cron Job (cPanel)
 
-- Minute: `0`
-- Hour: `3`
-- Day: `*`
-- Month: `*`
-- Weekday: `*`
-- Command:
-```bash
-cd /home/alitbedb/apps/insights && /home/alitbedb/nodevenv/apps/insights/18/bin/node backend/cron/update-all.js >> /home/alitbedb/logs/insights-update.log 2>&1
+Go to cPanel > Cron Jobs and add:
+
+**Daily update at 3:00 AM:**
+
+```
+0 3 * * * source /home/alitbedb/nodevenv/apps/insights/22/bin/activate && cd /home/alitbedb/apps/insights && node backend/cron/update-all.js >> /home/alitbedb/logs/insights-cron.log 2>&1
 ```
 
-### 3.2 Create Logs Directory
-
+Create logs directory:
 ```bash
 mkdir -p /home/alitbedb/logs
 ```
 
 ---
 
-## Step 4: Verify Deployment
+## Verification
 
-1. Visit: `https://alitar.one/insights`
-2. Should redirect to: `https://alitar.one/insights/sp500-crash-radar`
-3. Check health: `https://alitar.one/insights/health`
-4. Verify chart loads with data
-5. Test language switching (EN/PT)
-6. Test crisis selection and URL updates
+After deployment, verify:
+
+- [ ] `https://alitar.one/insights` redirects to `/insights/sp500-crash-radar`
+- [ ] `https://alitar.one/insights/health` returns status OK
+- [ ] Chart loads with historical data
+- [ ] Language switching works (EN/PT)
+- [ ] Crisis selection updates URL
 
 ---
 
 ## Troubleshooting
 
 ### App Not Starting
-- Check Node.js version (must be 14+)
-- Check `.env` file exists and has correct values
-- Check logs in cPanel Node.js App
+
+1. Check Node.js version (must be 14+)
+2. Verify `.env` was created (check via FTP)
+3. Check app logs in cPanel
 
 ### Database Connection Failed
-- Verify database credentials in `.env`
-- Check user has correct privileges
-- Ensure database exists
+
+1. Verify GitHub secrets are correct
+2. Check database user has privileges
+3. Test connection via cPanel terminal
 
 ### No Data on Chart
-- Run snapshots manually
-- Check `ingestion_runs` table for errors
-- Verify Shiller URL is accessible
+
+1. Check app logs for setup errors
+2. Verify `series_points` table has data
+3. Run manual snapshot if needed:
+   ```bash
+   npm run snapshot -- --slug spx_price_monthly
+   ```
 
 ### Cron Not Running
-- Check cron syntax
-- Verify full paths in command
-- Check `/home/alitbedb/logs/insights-update.log` for errors
+
+1. Check cron syntax in cPanel
+2. Verify paths are correct
+3. Check log file: `tail -50 /home/alitbedb/logs/insights-cron.log`
 
 ---
 
-## Maintenance
+## Manual Operations
 
-### Manual Data Update
+### Update Data Manually
 ```bash
+source /home/alitbedb/nodevenv/apps/insights/22/bin/activate
 cd /home/alitbedb/apps/insights
-source /home/alitbedb/nodevenv/apps/insights/18/bin/activate
 npm run update-all
 ```
 
+### Restart Application
+- Via cPanel > Setup Node.js App > Restart
+- Or: `touch /home/alitbedb/apps/insights/tmp/restart.txt`
+
 ### View Logs
 ```bash
-tail -100 /home/alitbedb/logs/insights-update.log
+# App logs (in cPanel Node.js app interface)
+# Cron logs
+tail -100 /home/alitbedb/logs/insights-cron.log
 ```
 
-### Restart Application
-- Via cPanel → Setup Node.js App → Click "Restart"
-- Or via SSH: `touch /home/alitbedb/apps/insights/tmp/restart.txt`
+---
+
+## Architecture
+
+```
+GitHub (push to main)
+        |
+        v
+GitHub Actions (deploy.yml)
+        |
+        ├── Create .env from secrets
+        └── FTP upload to /apps/insights/
+                |
+                v
+        Namecheap Server
+                |
+                ├── npm install (manual, once)
+                └── App startup (automatic)
+                        |
+                        ├── runMigrations() - creates tables
+                        ├── runSeedIfNeeded() - creates series
+                        └── runSnapshotIfNeeded() - downloads data
+```

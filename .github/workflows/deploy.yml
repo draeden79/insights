@@ -13,6 +13,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Create .env file from secrets
+        run: |
+          cat > .env << EOF
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          DB_PORT=3306
+          PORT=3000
+          NODE_ENV=production
+          SHILLER_DATA_URL=http://www.econ.yale.edu/~shiller/data/ie_data.xls
+          EOF
+
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
@@ -20,12 +33,11 @@ jobs:
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./
-          server-dir: /
+          server-dir: /apps/insights/
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
-            **/.env
             **/mysql_data/**
             **/*.log
             **/tmp/**
@@ -36,9 +48,10 @@ jobs:
             **/.idea/**
             **/*.swp
             **/*.swo
+            **/.cursor/**
 
       - name: Deployment notification
         run: |
-          echo "✅ Deployment completed!"
-          echo "📅 Date: $(date)"
-          echo "🔗 URL: https://alitar.one/insights"
+          echo "Deployment completed!"
+          echo "Date: $(date)"
+          echo "URL: https://alitar.one/insights"
