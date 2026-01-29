@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>S&P 500: Crash Radar | Alitar</title>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <link rel="apple-touch-icon" href="favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/theme.css">
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+</head>
+<body>
+    <main class="main-content">
+        <section id="bubble-roadmap" class="section">
+            <div class="hero-section">
+                <h1 id="page-title" class="section__title">S&P 500: Crash Radar</h1>
+                <div class="controls-inline">
+                    <select id="crisis-selector" class="select">
+                        <!-- Options populated by JavaScript -->
+                    </select>
+                    <select id="language-selector" class="select select--small">
+                        <option value="en-US">EN</option>
+                        <option value="pt-BR">PT</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="chart-section">
+                <div class="chart-container">
+                    <canvas id="bubble-chart"></canvas>
+                </div>
+                
+                <div id="analysis-details" class="info-box__crisis">
+                    <!-- Analysis details will be populated by JavaScript -->
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <script src="js/i18n.js?v=1706480000"></script>
+    <script src="js/api.js?v=1706480000"></script>
+    <script src="js/app.js?v=1706480000"></script>
+</body>
+</html>

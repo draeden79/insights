@@ -1,0 +1,32 @@
+{
+  "name": "alitar-financial-explorer",
+  "version": "1.0.0",
+  "description": "Financial data analysis platform with bubble roadmap visualization",
+  "main": "backend/src/app.js",
+  "scripts": {
+    "start": "node backend/src/app.js",
+    "dev": "nodemon backend/src/app.js",
+    "snapshot": "node backend/scripts/snapshot-series.js",
+    "incremental": "node backend/scripts/incremental-update.js",
+    "reset": "node backend/scripts/reset-series.js",
+    "update-all": "node backend/cron/update-all.js",
+    "seed": "node backend/src/db/seeds/seed-series.js",
+    "docker:up": "docker-compose up -d mysql",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f mysql",
+    "setup": "node scripts/setup-dev.js"
+  },
+  "keywords": ["financial", "analysis", "sp500", "data"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mysql2": "^3.6.0",
+    "xlsx": "^0.18.5",
+    "dotenv": "^16.3.1",
+    "node-cron": "^3.0.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
