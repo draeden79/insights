@@ -24,9 +24,9 @@ tmp/
 temp/
 *.tmp
 
-# Database dumps
-*.sql
+# Database dumps (but allow migrations)
 *.dump
+!database/migrations/*.sql
 
 # Docker volumes
 mysql_data/

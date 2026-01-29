@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Financial data analysis platform with bubble roadmap visualization",
   "main": "backend/src/app.js",
+  "engines": {
+    "node": ">=14.0.0"
+  },
   "scripts": {
     "start": "node backend/src/app.js",
     "dev": "nodemon backend/src/app.js",
@@ -14,10 +17,11 @@
     "docker:up": "docker-compose up -d mysql",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f mysql",
-    "setup": "node scripts/setup-dev.js"
+    "setup": "node scripts/setup-dev.js",
+    "setup:prod": "node scripts/setup-production.js"
   },
   "keywords": ["financial", "analysis", "sp500", "data"],
-  "author": "",
+  "author": "Manuel Guimaraes",
   "license": "ISC",
   "dependencies": {
     "express": "^4.18.2",

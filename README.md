@@ -43,6 +43,7 @@ alitar-financial-explorer/
 ## Documentation
 
 * **[URL Structure (Insights)](docs/URL-STRUCTURE.md)** — Naming and URL spec for public insights (`/insights/{insight_slug}`).
+* **[Production Deployment](docs/PRODUCTION-DEPLOY.md)** — Complete guide for deploying to Namecheap (database, GitHub Actions, cron).
 
 ## Local Setup
 
