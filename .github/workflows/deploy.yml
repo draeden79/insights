@@ -35,7 +35,7 @@ jobs:
           protocol: ftps
           port: 21
           local-dir: ./
-          server-dir: /apps/insights/
+          server-dir: /
           exclude: |
             **/.git*
             **/.git*/**
