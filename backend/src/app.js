@@ -24,10 +24,19 @@ app.use((req, res, next) => {
     next();
 });
 
-// Routes
-app.use('/api/series', require('./routes/api/series'));
-app.use('/api/analysis', require('./routes/api/analysis'));
-app.use('/health', require('./routes/health'));
+// Routes (support both with and without /insights prefix)
+const seriesRouter = require('./routes/api/series');
+const analysisRouter = require('./routes/api/analysis');
+const healthRouter = require('./routes/health');
+
+app.use('/api/series', seriesRouter);
+app.use('/api/analysis', analysisRouter);
+app.use('/health', healthRouter);
+
+// Also mount with /insights prefix for Namecheap routing
+app.use('/insights/api/series', seriesRouter);
+app.use('/insights/api/analysis', analysisRouter);
+app.use('/insights/health', healthRouter);
 
 // Frontend path
 const frontendPath = path.join(__dirname, '../../frontend');
