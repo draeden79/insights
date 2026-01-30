@@ -11,32 +11,35 @@ const db = require('./connection');
  * Run database migrations if tables don't exist
  */
 async function runMigrations() {
-    console.log('[Setup] Checking database migrations...');
+    // Use console.error for all logs (stderr is captured in Namecheap)
+    const log = console.error.bind(console);
+    
+    log('[Setup] Checking database migrations...');
     
     try {
         const pool = db.getPool();
         
         // Check if tables already exist
         const [tables] = await pool.query("SHOW TABLES LIKE 'series'");
-        console.log('[Setup] SHOW TABLES result:', tables);
+        log('[Setup] SHOW TABLES result:', JSON.stringify(tables));
         
         if (tables.length > 0) {
-            console.log('[Setup] Database tables already exist.');
+            log('[Setup] Database tables already exist.');
             return false;
         }
         
-        console.log('[Setup] Tables do not exist. Running migrations...');
+        log('[Setup] Tables do not exist. Running migrations...');
         
         // Read migration file
         const migrationPath = path.join(__dirname, '../../../database/migrations/001_initial_schema.sql');
-        console.log('[Setup] Migration path:', migrationPath);
+        log('[Setup] Migration path:', migrationPath);
         
         if (!fs.existsSync(migrationPath)) {
             throw new Error(`Migration file not found: ${migrationPath}`);
         }
         
         const sql = fs.readFileSync(migrationPath, 'utf8');
-        console.log('[Setup] Migration file loaded, length:', sql.length);
+        log('[Setup] Migration file loaded, length:', sql.length);
         
         // Split into individual statements and execute
         const statements = sql
@@ -44,22 +47,22 @@ async function runMigrations() {
             .map(s => s.trim())
             .filter(s => s.length > 0 && !s.startsWith('--'));
         
-        console.log('[Setup] Found', statements.length, 'SQL statements to execute');
+        log('[Setup] Found', statements.length, 'SQL statements to execute');
         
         for (let i = 0; i < statements.length; i++) {
             const statement = statements[i];
-            console.log(`[Setup] Executing statement ${i + 1}/${statements.length}...`);
+            log(`[Setup] Executing statement ${i + 1}/${statements.length}...`);
             try {
                 await pool.query(statement);
-                console.log(`[Setup] Statement ${i + 1} executed successfully`);
+                log(`[Setup] Statement ${i + 1} executed successfully`);
             } catch (stmtError) {
-                console.error(`[Setup] Statement ${i + 1} failed:`, stmtError.message);
-                console.error('[Setup] Statement was:', statement.substring(0, 100) + '...');
+                log(`[Setup] Statement ${i + 1} failed:`, stmtError.message);
+                log('[Setup] Statement was:', statement.substring(0, 100) + '...');
                 throw stmtError;
             }
         }
         
-        console.log('[Setup] Migrations completed successfully!');
+        log('[Setup] Migrations completed successfully!');
         return true;
     } catch (error) {
         console.error('[Setup] Migration error:', error.message);
@@ -128,17 +131,23 @@ async function runSnapshotIfNeeded() {
  * Run full setup: migrations + seed + snapshot
  */
 async function runFullSetup() {
-    console.log('[Setup] Starting auto-setup...');
+    const log = console.error.bind(console);
+    log('[Setup] Starting auto-setup...');
     
     try {
         const migrationsRan = await runMigrations();
+        log('[Setup] Migrations step completed, result:', migrationsRan);
+        
         const seedRan = await runSeedIfNeeded();
+        log('[Setup] Seed step completed, result:', seedRan);
+        
         const snapshotRan = await runSnapshotIfNeeded();
+        log('[Setup] Snapshot step completed, result:', snapshotRan);
         
         if (migrationsRan || seedRan || snapshotRan) {
-            console.log('[Setup] Auto-setup completed successfully!');
+            log('[Setup] Auto-setup completed successfully!');
         } else {
-            console.log('[Setup] Database already configured, no setup needed.');
+            log('[Setup] Database already configured, no setup needed.');
         }
     } catch (error) {
         console.error('[Setup] Auto-setup failed:', error.message);
