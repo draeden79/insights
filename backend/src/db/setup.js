@@ -41,11 +41,17 @@ async function runMigrations() {
         const sql = fs.readFileSync(migrationPath, 'utf8');
         log('[Setup] Migration file loaded, length:', sql.length);
         
-        // Split into individual statements and execute
-        const statements = sql
+        // Remove comment-only lines and split into statements
+        const cleanedSql = sql
+            .split('\n')
+            .filter(line => !line.trim().startsWith('--'))  // Remove comment lines
+            .join('\n');
+        
+        // Split into individual statements
+        const statements = cleanedSql
             .split(';')
             .map(s => s.trim())
-            .filter(s => s.length > 0 && !s.startsWith('--'));
+            .filter(s => s.length > 0);
         
         log('[Setup] Found', statements.length, 'SQL statements to execute');
         
