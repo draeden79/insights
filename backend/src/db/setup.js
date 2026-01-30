@@ -13,39 +13,58 @@ const db = require('./connection');
 async function runMigrations() {
     console.log('[Setup] Checking database migrations...');
     
-    const pool = db.getPool();
-    
-    // Check if tables already exist
-    const [tables] = await pool.query("SHOW TABLES LIKE 'series'");
-    
-    if (tables.length > 0) {
-        console.log('[Setup] Database tables already exist.');
-        return false;
+    try {
+        const pool = db.getPool();
+        
+        // Check if tables already exist
+        const [tables] = await pool.query("SHOW TABLES LIKE 'series'");
+        console.log('[Setup] SHOW TABLES result:', tables);
+        
+        if (tables.length > 0) {
+            console.log('[Setup] Database tables already exist.');
+            return false;
+        }
+        
+        console.log('[Setup] Tables do not exist. Running migrations...');
+        
+        // Read migration file
+        const migrationPath = path.join(__dirname, '../../../database/migrations/001_initial_schema.sql');
+        console.log('[Setup] Migration path:', migrationPath);
+        
+        if (!fs.existsSync(migrationPath)) {
+            throw new Error(`Migration file not found: ${migrationPath}`);
+        }
+        
+        const sql = fs.readFileSync(migrationPath, 'utf8');
+        console.log('[Setup] Migration file loaded, length:', sql.length);
+        
+        // Split into individual statements and execute
+        const statements = sql
+            .split(';')
+            .map(s => s.trim())
+            .filter(s => s.length > 0 && !s.startsWith('--'));
+        
+        console.log('[Setup] Found', statements.length, 'SQL statements to execute');
+        
+        for (let i = 0; i < statements.length; i++) {
+            const statement = statements[i];
+            console.log(`[Setup] Executing statement ${i + 1}/${statements.length}...`);
+            try {
+                await pool.query(statement);
+                console.log(`[Setup] Statement ${i + 1} executed successfully`);
+            } catch (stmtError) {
+                console.error(`[Setup] Statement ${i + 1} failed:`, stmtError.message);
+                console.error('[Setup] Statement was:', statement.substring(0, 100) + '...');
+                throw stmtError;
+            }
+        }
+        
+        console.log('[Setup] Migrations completed successfully!');
+        return true;
+    } catch (error) {
+        console.error('[Setup] Migration error:', error.message);
+        throw error;
     }
-    
-    console.log('[Setup] Running migrations...');
-    
-    // Read migration file
-    const migrationPath = path.join(__dirname, '../../../database/migrations/001_initial_schema.sql');
-    
-    if (!fs.existsSync(migrationPath)) {
-        throw new Error(`Migration file not found: ${migrationPath}`);
-    }
-    
-    const sql = fs.readFileSync(migrationPath, 'utf8');
-    
-    // Split into individual statements and execute
-    const statements = sql
-        .split(';')
-        .map(s => s.trim())
-        .filter(s => s.length > 0 && !s.startsWith('--'));
-    
-    for (const statement of statements) {
-        await pool.query(statement);
-    }
-    
-    console.log('[Setup] Migrations completed successfully!');
-    return true;
 }
 
 /**
