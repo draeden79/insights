@@ -33,15 +33,29 @@ app.use('/health', require('./routes/health'));
 const frontendPath = path.join(__dirname, '../../frontend');
 
 // Insight routes (must be before static middleware)
-// Root redirects to the main insight
+// Support both with and without /insights prefix (for Namecheap routing)
+
+// Root redirects
 app.get('/', (req, res) => {
     res.redirect(302, '/sp500-crash-radar');
 });
+app.get('/insights', (req, res) => {
+    res.redirect(302, '/insights/sp500-crash-radar');
+});
+app.get('/insights/', (req, res) => {
+    res.redirect(302, '/insights/sp500-crash-radar');
+});
 
-// Main insight: S&P 500 Crash Radar
+// Main insight: S&P 500 Crash Radar (both paths)
 app.get('/sp500-crash-radar', (req, res) => {
     res.sendFile(path.join(frontendPath, 'index.html'));
 });
+app.get('/insights/sp500-crash-radar', (req, res) => {
+    res.sendFile(path.join(frontendPath, 'index.html'));
+});
+
+// Static files with /insights prefix
+app.use('/insights', express.static(frontendPath));
 
 // Serve static frontend files (js, css, images, etc.)
 app.use(express.static(frontendPath));
