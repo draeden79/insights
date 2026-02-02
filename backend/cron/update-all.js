@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
+const path = require('path');
 require('dotenv').config();
-const db = require('../src/db/connection');
-const IncrementalRunner = require('../scripts/incremental-update');
+const db = require(path.join(__dirname, '../src/db/connection'));
+const IncrementalRunner = require(path.join(__dirname, '../scripts/incremental-update'));
 
 /**
  * Update all active series incrementally

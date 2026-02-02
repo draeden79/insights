@@ -121,9 +121,14 @@ After deployment, verify:
 
 ### Cron Not Running
 
-1. Check cron syntax in cPanel
-2. Verify paths are correct
-3. Check log file: `tail -50 /home/alitbedb/logs/insights-cron.log`
+1. **Use the correct command** — cron must run `backend/cron/update-all.js` (not `incremental-update.js`):
+   ```
+   0 3 * * * source /home/alitbedb/nodevenv/apps/insights/22/bin/activate && cd /home/alitbedb/apps/insights && node backend/cron/update-all.js 2>&1 | tee -a /home/alitbedb/logs/insights-cron.log
+   ```
+2. Check cron syntax in cPanel
+3. Verify paths (nodevenv, apps/insights, logs) exist
+4. Check log file: `tail -50 /home/alitbedb/logs/insights-cron.log`
+5. Test from SSH (same command as cron) to see errors in the terminal
 
 ---
 

@@ -197,27 +197,34 @@ class IncrementalRunner extends BaseIngestionService {
     }
 }
 
-// Parse command line arguments
-const args = process.argv.slice(2);
-const slugIndex = args.indexOf('--slug');
-const slug = slugIndex >= 0 && args[slugIndex + 1] ? args[slugIndex + 1] : null;
+// Export for use by update-all.js
+module.exports = IncrementalRunner;
 
-if (!slug) {
-    console.error('Usage: node incremental-update.js --slug <series-slug>');
-    process.exit(1);
+// CLI: only run when executed directly (not when required)
+if (require.main === module) {
+    const path = require('path');
+    const args = process.argv.slice(2);
+    const slugIndex = args.indexOf('--slug');
+    const slug = slugIndex >= 0 && args[slugIndex + 1] ? args[slugIndex + 1] : null;
+
+    if (!slug) {
+        // No --slug: run update-all so cron works even if it calls this script by mistake
+        console.log('No --slug provided. Running update for all active series (update-all)...');
+        require(path.join(__dirname, '../cron/update-all.js'));
+        return;
+    }
+
+    const runner = new IncrementalRunner(slug);
+    runner.run()
+        .then(() => {
+            console.log('Done');
+            process.exit(0);
+        })
+        .catch((error) => {
+            console.error('Incremental update failed:', error);
+            process.exit(1);
+        })
+        .finally(() => {
+            db.close();
+        });
 }
-
-// Run incremental update
-const runner = new IncrementalRunner(slug);
-runner.run()
-    .then(() => {
-        console.log('Done');
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('Incremental update failed:', error);
-        process.exit(1);
-    })
-    .finally(() => {
-        db.close();
-    });
