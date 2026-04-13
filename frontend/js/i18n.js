@@ -176,7 +176,7 @@ function getCrisisTranslation(crisisId) {
 
 /**
  * Format date according to current locale
- * @param {string} dateStr - Date string in YYYY-MM-DD or YYYY-MM format
+ * @param {string} dateStr - Date string in YYYY-MM-DD or YYYY-MM format (calendar month bucket)
  * @returns {string} Formatted date
  */
 function formatDate(dateStr) {
@@ -189,9 +189,12 @@ function formatDate(dateStr) {
     
     const date = new Date(Date.UTC(year, month, 1));
     
+    // UTC: API month keys (e.g. 2026-03-01) must show as March in all timezones,
+    // not the prior month when local midnight falls on a different calendar day.
     return new Intl.DateTimeFormat(currentLocale, {
         year: 'numeric',
-        month: 'short'
+        month: 'short',
+        timeZone: 'UTC'
     }).format(date);
 }
 
