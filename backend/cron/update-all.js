@@ -3,6 +3,7 @@
 const path = require('path');
 require('dotenv').config();
 const db = require(path.join(__dirname, '../src/db/connection'));
+const { patchSpxFredSourceIfNeeded } = require(path.join(__dirname, '../src/db/setup'));
 const IncrementalRunner = require(path.join(__dirname, '../scripts/incremental-update'));
 
 /**
@@ -15,7 +16,13 @@ async function updateAll() {
     try {
         console.log('Starting update-all job...');
         console.log(`Time: ${new Date().toISOString()}`);
-        
+
+        try {
+            await patchSpxFredSourceIfNeeded();
+        } catch (patchErr) {
+            console.error('Stooq->FRED source patch failed (continuing updates):', patchErr.message);
+        }
+
         // Get all active series
         const series = await db.query(
             "SELECT slug FROM series WHERE status = 'active'"

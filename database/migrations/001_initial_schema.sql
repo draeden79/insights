@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS series (
     description TEXT,
     frequency CHAR(1) DEFAULT 'M' COMMENT 'M=Monthly',
     unit VARCHAR(50) NOT NULL COMMENT 'index_points, ratio, etc',
-    source_type VARCHAR(50) NOT NULL COMMENT 'shiller, stooq, fred',
+    source_type VARCHAR(50) NOT NULL COMMENT 'shiller, fred',
     source_config_json JSON NOT NULL,
     transform_config_json JSON,
     status ENUM('active', 'paused') DEFAULT 'active',

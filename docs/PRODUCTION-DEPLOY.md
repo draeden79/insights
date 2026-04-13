@@ -45,6 +45,7 @@ Add these repository secrets:
 | `DB_USER` | Database user | `alitbedb_user` |
 | `DB_PASSWORD` | Database password | `***` |
 | `DB_NAME` | Database name | `alitbedb_insights` |
+| `FRED_API_KEY` | [FRED API](https://fred.stlouisfed.org/docs/api/api_key.html) (free) for S&P 500 monthly extension after Shiller | 32-character key |
 
 ### 3. Create FTP Account (cPanel)
 

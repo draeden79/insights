@@ -1,4 +1,5 @@
 const db = require('../connection');
+const { spxPriceMonthlySourceConfigJson } = require('../spx-price-monthly-source-config');
 
 /**
  * Seed initial series definitions
@@ -11,31 +12,11 @@ async function seedSeries() {
             {
                 slug: 'spx_price_monthly',
                 name: 'S&P 500 Price (Monthly)',
-                description: 'Monthly closing price of S&P 500 index from Shiller + Stooq datasets',
+                description: 'Monthly closing price of S&P 500 index from Shiller + FRED (SP500)',
                 frequency: 'M',
                 unit: 'index_points',
                 source_type: 'multi',
-                source_config_json: JSON.stringify({
-                    sources: [
-                        { 
-                            type: 'shiller', 
-                            priority: 1, 
-                            config: { 
-                                url: process.env.SHILLER_DATA_URL || 'http://www.econ.yale.edu/~shiller/data/ie_data.xls',
-                                type: 'price' 
-                            } 
-                        },
-                        { 
-                            type: 'stooq', 
-                            priority: 2, 
-                            config: { 
-                                symbol: '^spx', 
-                                interval: 'm' 
-                            } 
-                        }
-                    ],
-                    merge_strategy: 'fill_gaps'
-                }),
+                source_config_json: spxPriceMonthlySourceConfigJson(),
                 transform_config_json: JSON.stringify({
                     normalize_date: true,
                     round_decimals: 2

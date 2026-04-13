@@ -23,6 +23,7 @@ jobs:
           echo "PORT=3000" >> .env
           echo "NODE_ENV=production" >> .env
           echo "SHILLER_DATA_URL=http://www.econ.yale.edu/~shiller/data/ie_data.xls" >> .env
+          echo "FRED_API_KEY=${{ secrets.FRED_API_KEY }}" >> .env
           cat .env
           ls -la .env
 

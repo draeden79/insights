@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const db = require('./connection');
+const { spxPriceMonthlySourceConfigJson } = require('./spx-price-monthly-source-config');
 
 /**
  * Run database migrations if tables don't exist
@@ -99,6 +100,63 @@ async function runSeedIfNeeded() {
 }
 
 /**
+ * Migrate spx_price_monthly from legacy Stooq secondary source to FRED (idempotent).
+ * Keeps existing series_points; incremental cron then continues with FRED for new months.
+ */
+async function patchSpxFredSourceIfNeeded() {
+    const log = console.error.bind(console);
+    log('[Setup] Checking spx_price_monthly source config (Stooq -> FRED)...');
+
+    try {
+        const row = await db.queryOne(
+            `SELECT id, source_config_json FROM series WHERE slug = 'spx_price_monthly'`
+        );
+        if (!row) {
+            log('[Setup] spx_price_monthly not found, skip source patch.');
+            return false;
+        }
+
+        const raw =
+            typeof row.source_config_json === 'string'
+                ? row.source_config_json
+                : JSON.stringify(row.source_config_json);
+        let parsed;
+        try {
+            parsed = JSON.parse(raw);
+        } catch {
+            log('[Setup] spx_price_monthly source_config_json not JSON, skip.');
+            return false;
+        }
+
+        const sources = parsed.sources;
+        if (!Array.isArray(sources)) {
+            log('[Setup] spx_price_monthly has no sources array, skip.');
+            return false;
+        }
+
+        const usesStooq = sources.some((s) => s && s.type === 'stooq');
+        if (!usesStooq) {
+            log('[Setup] spx_price_monthly already uses non-Stooq secondary source, skip.');
+            return false;
+        }
+
+        const nextJson = spxPriceMonthlySourceConfigJson();
+        await db.query(
+            `UPDATE series SET
+                source_config_json = ?,
+                description = 'Monthly closing price of S&P 500 index from Shiller + FRED (SP500)'
+             WHERE id = ?`,
+            [nextJson, row.id]
+        );
+        log('[Setup] Updated spx_price_monthly: secondary source Stooq -> FRED.');
+        return true;
+    } catch (error) {
+        log('[Setup] spx_price_monthly source patch failed:', error.message);
+        throw error;
+    }
+}
+
+/**
  * Run initial snapshot if no data points exist
  */
 async function runSnapshotIfNeeded() {
@@ -146,11 +204,14 @@ async function runFullSetup() {
         
         const seedRan = await runSeedIfNeeded();
         log('[Setup] Seed step completed, result:', seedRan);
-        
+
+        const patched = await patchSpxFredSourceIfNeeded();
+        log('[Setup] Stooq->FRED patch step completed, result:', patched);
+
         const snapshotRan = await runSnapshotIfNeeded();
         log('[Setup] Snapshot step completed, result:', snapshotRan);
         
-        if (migrationsRan || seedRan || snapshotRan) {
+        if (migrationsRan || seedRan || patched || snapshotRan) {
             log('[Setup] Auto-setup completed successfully!');
         } else {
             log('[Setup] Database already configured, no setup needed.');
@@ -164,6 +225,7 @@ async function runFullSetup() {
 module.exports = {
     runMigrations,
     runSeedIfNeeded,
+    patchSpxFredSourceIfNeeded,
     runSnapshotIfNeeded,
     runFullSetup
 };

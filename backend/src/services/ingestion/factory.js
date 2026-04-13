@@ -1,5 +1,5 @@
 const ShillerIngestionService = require('./shiller');
-const StooqIngestionService = require('./stooq');
+const FredIngestionService = require('./fred');
 
 /**
  * Ingestion Service Factory
@@ -9,12 +9,12 @@ const StooqIngestionService = require('./stooq');
 // Registry of available ingestion services
 const registry = {
     shiller: ShillerIngestionService,
-    stooq: StooqIngestionService
+    fred: FredIngestionService
 };
 
 /**
  * Create an ingestion service instance
- * @param {string} sourceType - Type of source ('shiller', 'stooq')
+ * @param {string} sourceType - Type of source ('shiller', 'fred')
  * @param {Object} config - Configuration for the service
  * @returns {Object} Ingestion service instance
  */
